@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: #07071a;
+  --color-foreground: #e8eeff;
+  --color-card: rgba(16, 20, 60, 0.85);
+  --color-primary: #00d4ff;
+  --color-primary-foreground: #07071a;
+  --color-accent: #ff3c3c;
+  --color-accent-foreground: #ffffff;
+  --color-gold: #ffd700;
+  --color-neon-green: #39ff14;
+  --color-border: rgba(0, 212, 255, 0.2);
+  --font-display: 'Orbitron', monospace;
+  --font-sub: 'Rajdhani', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #07071a;
+  color: #e8eeff;
+  font-family: 'Nunito', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #07071a;
+}
+::-webkit-scrollbar-thumb {
+  background: #00d4ff44;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00d4ff88;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 10px #00d4ff44, 0 0 30px #00d4ff22; }
+  50% { box-shadow: 0 0 20px #00d4ff88, 0 0 60px #00d4ff44; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.6; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes particle-drift {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(-100vh) translateX(var(--drift-x, 30px)) rotate(360deg); opacity: 0; }
+}
+
+.font-display { font-family: 'Orbitron', monospace; }
+.font-sub { font-family: 'Rajdhani', sans-serif; }
+.font-body { font-family: 'Nunito', sans-serif; }
+
+.glow-cyan { text-shadow: 0 0 10px #00d4ff, 0 0 30px #00d4ff66; }
+.glow-red { text-shadow: 0 0 10px #ff3c3c, 0 0 30px #ff3c3c66; }
+.glow-gold { text-shadow: 0 0 10px #ffd700, 0 0 30px #ffd70066; }
+
+.card-glow {
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  background: linear-gradient(135deg, rgba(16, 20, 60, 0.9), rgba(7, 7, 26, 0.95));
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.08), inset 0 0 30px rgba(0, 212, 255, 0.04);
+  backdrop-filter: blur(12px);
+}
+
+.card-glow:hover {
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.2), inset 0 0 30px rgba(0, 212, 255, 0.06);
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  color: #07071a;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.6);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, #ff3c3c, #cc0000);
+  color: #ffffff;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 20px rgba(255, 60, 60, 0.4);
+}
+.btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(255, 60, 60, 0.6);
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #00d4ff, #ffd700, #ff3c3c, #00d4ff);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+.hexagon-clip {
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.diamond-border {
+  position: relative;
+}
+.diamond-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(45deg, #00d4ff, #ff3c3c, #ffd700, #00d4ff);
+  z-index: -1;
+  border-radius: inherit;
+  animation: shimmer 3s linear infinite;
+  background-size: 300% auto;
+}
