@@ -324,6 +324,135 @@ function DetailCard({ icon, label, children, accentColor = '#00d4ff' }: DetailCa
   )
 }
 
+// ── YouTube music button ───────────────────────────────────────────────────
+const PARTY_MUSIC_VIDEO_ID = 'yURRmWtbTbo'
+
+function MusicButton() {
+  const [playing, setPlaying] = useState(false)
+  const playerRef = useRef<YouTubePlayerInstance | null>(null)
+  const playerHostRef = useRef<HTMLDivElement>(null)
+  const playingRef = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+    let resumeListener: (() => void) | null = null
+
+    const syncPlaying = (isPlaying: boolean) => {
+      playingRef.current = isPlaying
+      setPlaying(isPlaying)
+    }
+
+    const tryAutoplay = (player: YouTubePlayerInstance) => {
+      player.playVideo()
+
+      window.setTimeout(() => {
+        if (cancelled || playingRef.current) return
+
+        resumeListener = () => {
+          playerRef.current?.playVideo()
+        }
+        document.addEventListener('pointerdown', resumeListener, { once: true })
+        document.addEventListener('keydown', resumeListener, { once: true })
+      }, 1000)
+    }
+
+    const initPlayer = () => {
+      if (cancelled || !playerHostRef.current || !window.YT?.Player) return
+
+      playerRef.current = new window.YT.Player(playerHostRef.current, {
+        height: '0',
+        width: '0',
+        videoId: PARTY_MUSIC_VIDEO_ID,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          modestbranding: 1,
+          rel: 0,
+          playsinline: 1,
+        },
+        events: {
+          onReady: event => {
+            tryAutoplay(event.target)
+          },
+          onStateChange: event => {
+            const { PLAYING, PAUSED, ENDED } = window.YT!.PlayerState
+            if (event.data === PLAYING) syncPlaying(true)
+            if (event.data === PAUSED || event.data === ENDED) syncPlaying(false)
+          },
+        },
+      })
+    }
+
+    if (window.YT?.Player) {
+      initPlayer()
+    } else {
+      const previousReady = window.onYouTubeIframeAPIReady
+      window.onYouTubeIframeAPIReady = () => {
+        previousReady?.()
+        initPlayer()
+      }
+
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        const script = document.createElement('script')
+        script.src = 'https://www.youtube.com/iframe_api'
+        document.head.appendChild(script)
+      }
+    }
+
+    return () => {
+      cancelled = true
+      if (resumeListener) {
+        document.removeEventListener('pointerdown', resumeListener)
+        document.removeEventListener('keydown', resumeListener)
+      }
+      playerRef.current?.destroy()
+      playerRef.current = null
+    }
+  }, [])
+
+  const toggleMusic = () => {
+    const player = playerRef.current
+    if (!player) return
+
+    if (playing) player.pauseVideo()
+    else player.playVideo()
+  }
+
+  return (
+    <>
+      <div ref={playerHostRef} className="fixed w-0 h-0 overflow-hidden opacity-0 pointer-events-none" aria-hidden />
+
+      <button
+        type="button"
+        onClick={toggleMusic}
+        aria-label={playing ? 'Pausar música' : "Reproducir Don't Stop 'Til You Get Enough"}
+        title={playing ? 'Pausar música' : "Reproducir Don't Stop 'Til You Get Enough"}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-transform hover:scale-105 active:scale-95"
+        style={{
+          background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+          boxShadow: playing
+            ? '0 0 30px rgba(0,212,255,0.7), 0 0 60px rgba(0,212,255,0.35)'
+            : '0 0 20px rgba(0,212,255,0.5)',
+          animation: playing ? 'pulse-glow 2s ease-in-out infinite' : undefined,
+        }}
+      >
+        {playing ? (
+          <svg className="h-6 w-6 text-[#07071a]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <rect x="6" y="5" width="4" height="14" rx="1" />
+            <rect x="14" y="5" width="4" height="14" rx="1" />
+          </svg>
+        ) : (
+          <svg className="h-7 w-7 text-[#07071a]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+          </svg>
+        )}
+      </button>
+    </>
+  )
+}
+
 // ── Main app ───────────────────────────────────────────────────────────────
 export default function App() {
   const [address, setAddress] = useState('Calle 86 entre 175A y 177, Villa Ana Cecilia')
@@ -332,6 +461,7 @@ export default function App() {
     <div className="min-h-screen relative grid-bg overflow-x-hidden" style={{ backgroundColor: '#07071a' }}>
       <ParticleField />
       <Scanline />
+      <MusicButton />
 
       {/* Radial ambient glows */}
       <div
