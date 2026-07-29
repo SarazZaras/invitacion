@@ -27,5 +27,8 @@ interface Window {
 interface YouTubePlayerInstance {
   playVideo: () => void
   pauseVideo: () => void
+  mute: () => void
+  unMute: () => void
+  isMuted: () => boolean
   destroy: () => void
 }

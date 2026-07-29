@@ -327,54 +327,111 @@ function DetailCard({ icon, label, children, accentColor = '#00d4ff' }: DetailCa
 // ── YouTube music button ───────────────────────────────────────────────────
 const PARTY_MUSIC_VIDEO_ID = 'yURRmWtbTbo'
 
+function loadYouTubeIframeApi(): Promise<void> {
+  if (window.YT?.Player) return Promise.resolve()
+
+  return new Promise(resolve => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      window.clearInterval(poll)
+      resolve()
+    }
+
+    const previousReady = window.onYouTubeIframeAPIReady
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.()
+      finish()
+    }
+
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const script = document.createElement('script')
+      script.src = 'https://www.youtube.com/iframe_api'
+      document.head.appendChild(script)
+    }
+
+    const poll = window.setInterval(() => {
+      if (window.YT?.Player) finish()
+    }, 100)
+  })
+}
+
 function MusicButton() {
   const [playing, setPlaying] = useState(false)
+  const [needsSoundUnlock, setNeedsSoundUnlock] = useState(false)
   const playerRef = useRef<YouTubePlayerInstance | null>(null)
   const playerHostRef = useRef<HTMLDivElement>(null)
   const playingRef = useRef(false)
+  const soundUnlockedRef = useRef(false)
 
-  useEffect(() => {
-    let cancelled = false
-    let resumeListener: (() => void) | null = null
+  const syncPlaying = (isPlaying: boolean) => {
+    playingRef.current = isPlaying
+    setPlaying(isPlaying)
+  }
 
-    const syncPlaying = (isPlaying: boolean) => {
-      playingRef.current = isPlaying
-      setPlaying(isPlaying)
-    }
+  const startWithSound = (player: YouTubePlayerInstance) => {
+    player.unMute()
+    player.playVideo()
+    soundUnlockedRef.current = true
+    setNeedsSoundUnlock(false)
+  }
 
-    const tryAutoplay = (player: YouTubePlayerInstance) => {
+  const tryAutoplay = (player: YouTubePlayerInstance) => {
+    player.mute()
+    player.playVideo()
+
+    window.setTimeout(() => {
+      if (soundUnlockedRef.current) return
+
+      player.unMute()
       player.playVideo()
 
       window.setTimeout(() => {
-        if (cancelled || playingRef.current) return
+        if (soundUnlockedRef.current) return
+        const stillMuted = player.isMuted?.() ?? true
+        if (stillMuted || !playingRef.current) setNeedsSoundUnlock(true)
+      }, 800)
+    }, 400)
+  }
 
-        resumeListener = () => {
-          playerRef.current?.playVideo()
-        }
-        document.addEventListener('pointerdown', resumeListener, { once: true })
-        document.addEventListener('keydown', resumeListener, { once: true })
-      }, 1000)
+  useEffect(() => {
+    let cancelled = false
+    let unlockListener: (() => void) | null = null
+
+    const attachUnlockListeners = () => {
+      if (unlockListener || soundUnlockedRef.current) return
+
+      unlockListener = () => {
+        if (playerRef.current) startWithSound(playerRef.current)
+      }
+      document.addEventListener('pointerdown', unlockListener, { once: true })
+      document.addEventListener('keydown', unlockListener, { once: true })
     }
 
-    const initPlayer = () => {
+    loadYouTubeIframeApi().then(() => {
       if (cancelled || !playerHostRef.current || !window.YT?.Player) return
 
       playerRef.current = new window.YT.Player(playerHostRef.current, {
-        height: '0',
-        width: '0',
+        height: '1',
+        width: '1',
         videoId: PARTY_MUSIC_VIDEO_ID,
         playerVars: {
           autoplay: 1,
+          mute: 1,
+          enablejsapi: 1,
           controls: 0,
           disablekb: 1,
           fs: 0,
           modestbranding: 1,
           rel: 0,
           playsinline: 1,
+          origin: window.location.origin,
         },
         events: {
           onReady: event => {
             tryAutoplay(event.target)
+            attachUnlockListeners()
           },
           onStateChange: event => {
             const { PLAYING, PAUSED, ENDED } = window.YT!.PlayerState
@@ -383,29 +440,13 @@ function MusicButton() {
           },
         },
       })
-    }
-
-    if (window.YT?.Player) {
-      initPlayer()
-    } else {
-      const previousReady = window.onYouTubeIframeAPIReady
-      window.onYouTubeIframeAPIReady = () => {
-        previousReady?.()
-        initPlayer()
-      }
-
-      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-        const script = document.createElement('script')
-        script.src = 'https://www.youtube.com/iframe_api'
-        document.head.appendChild(script)
-      }
-    }
+    })
 
     return () => {
       cancelled = true
-      if (resumeListener) {
-        document.removeEventListener('pointerdown', resumeListener)
-        document.removeEventListener('keydown', resumeListener)
+      if (unlockListener) {
+        document.removeEventListener('pointerdown', unlockListener)
+        document.removeEventListener('keydown', unlockListener)
       }
       playerRef.current?.destroy()
       playerRef.current = null
@@ -416,13 +457,33 @@ function MusicButton() {
     const player = playerRef.current
     if (!player) return
 
-    if (playing) player.pauseVideo()
-    else player.playVideo()
+    if (playing) {
+      player.pauseVideo()
+      return
+    }
+
+    startWithSound(player)
   }
 
   return (
     <>
-      <div ref={playerHostRef} className="fixed w-0 h-0 overflow-hidden opacity-0 pointer-events-none" aria-hidden />
+      <div ref={playerHostRef} className="fixed -left-[9999px] top-0 h-px w-px overflow-hidden opacity-0 pointer-events-none" aria-hidden />
+
+      {needsSoundUnlock && (
+        <button
+          type="button"
+          onClick={() => playerRef.current && startWithSound(playerRef.current)}
+          className="fixed bottom-24 right-6 z-50 max-w-[220px] rounded-2xl px-4 py-3 text-left font-body text-sm text-cyan-100 transition-transform hover:scale-105 active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg, rgba(16, 20, 60, 0.95), rgba(7, 7, 26, 0.98))',
+            border: '1px solid rgba(0, 212, 255, 0.45)',
+            boxShadow: '0 0 30px rgba(0, 212, 255, 0.25)',
+          }}
+        >
+          <span className="font-display text-xs tracking-widest uppercase text-yellow-400">Mision extra</span>
+          <span className="mt-1 block">Toca para activar la musica 🎵</span>
+        </button>
+      )}
 
       <button
         type="button"
